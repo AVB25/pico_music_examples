@@ -24,13 +24,6 @@ int main(){
         waveform.samples[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * (M_PI / N_SAMPLES_STORED) * i));
     }
 
-    // Initialise the UserData struct that is passed to the repeating timer and stores the
-    // waveform and the current status
-    UserData user_data = {
-        &waveform,
-        &current_status
-    };
-
     while(1){
         printf("#############################\n");
         printf("min step increase: %d\n", iMinNSteps);
@@ -39,15 +32,15 @@ int main(){
         uint16_t adc_freq_reading = adc_read();
         printf("adc_reading: %03x\n", adc_freq_reading);
         uint32_t next_step_increase = get_next_step_increase(adc_freq_reading);
-        printf("Current step: %x\n", user_data.current_status->current_step);
+        printf("Current step: %x\n", current_status.current_step);
         printf("Next step increase: %x\n", next_step_increase);
-        printf("Current step + next_step: %x\n", user_data.current_status->current_step + next_step_increase);
+        printf("Current step + next_step: %x\n", current_status.current_step + next_step_increase);
         update_state_params(
             next_step_increase,
-            user_data.current_status,
-            user_data.waveform
+            &current_status,
+            &waveform
         );
-        printf("next sample: %i\n", user_data.current_status->current_output_sample);
+        printf("next sample: %i\n", current_status.current_output_sample);
         sleep_ms(500);
     };
 }

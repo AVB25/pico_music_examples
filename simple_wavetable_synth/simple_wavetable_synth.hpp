@@ -11,6 +11,10 @@
 # define F_SAMPLE 44000
 const int32_t iSamplePeriod_us = 1e6 / F_SAMPLE;
 
+// Only sample the ADC every 100 periods
+# define ADC_SAMPLE_PERIOD 100
+uint current_adc_sample = 0;
+
 
 /**
  * Define sample depth of the waveform. One waveform period is sampled with 8
@@ -35,6 +39,7 @@ const int32_t iSamplePeriod_us = 1e6 / F_SAMPLE;
 typedef struct {
     int32_t samples[N_SAMPLES_STORED];
 } Waveform;
+Waveform waveform;
 
 
 /**
@@ -52,15 +57,7 @@ typedef struct {
     int32_t current_output_sample;
     float volume;
 } CurrentStatus;
-
-
-/** Define UserData struct that contains the pointer to the Wavetable
- * struct and the pointer to the CurrentStatus struct.
- */
-struct UserData{
-    Waveform* waveform;    // Pointer to the waveform
-    CurrentStatus* current_status;  // Pointer to the index of the current sample in the array
-};
+CurrentStatus current_status;
 
 
 /**
@@ -254,6 +251,12 @@ void update_state_params(
 }
 
 
+// Store the next ADC reading
+uint16_t adc_freq_reading;
+// Store the next step increase
+uint32_t next_step_increase = 0;
+
+
 /**
  * \brief Function that calculates and produces the next sample. Is implemented as the callback of
  * a repeating alarm.
@@ -262,15 +265,20 @@ void update_state_params(
  * the user_data).
  */
 bool produce_next_sample(repeating_timer_t* rt){
-    UserData* user_data = (UserData*) rt->user_data;
-    uint16_t adc_freq_reading = adc_read();
-    uint32_t next_step_increase = get_next_step_increase(adc_freq_reading);
+    if(current_adc_sample < ADC_SAMPLE_PERIOD){
+        current_adc_sample++;
+    }
+    else{
+        adc_freq_reading = adc_read();
+        next_step_increase = get_next_step_increase(adc_freq_reading);
+        current_adc_sample = 0;
+    }
     update_state_params(
         next_step_increase,
-        user_data->current_status,
-        user_data->waveform
+        &current_status,
+        &waveform
     );
-    pwm_set_chan_level(PWM_SLICE, PWM_CHAN, user_data->current_status->current_output_sample);
+    pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     return true;
 }
 

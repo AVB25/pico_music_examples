@@ -12,27 +12,27 @@ int main(){
     initialise_interpolator();
 
     // Initialise the struct that stores the current status of the synth
-    CurrentStatus current_status = {
+    current_status = {
         0,  // current_step
         0,  // current_output_sample
         1   // volume
     };
     
     // Initialise the object that stores the sinusoidal waveform
-    Waveform waveform = {};
+    waveform = {};
     for (int i = 0; i < N_SAMPLES_STORED; i++){
         waveform.samples[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * M_PI * i / N_SAMPLES_STORED));
     }
 
-    // Initialise the UserData struct that is passed to the repeating timer and stores the
-    // waveform and the current status
-    UserData user_data = {
-        &waveform,
-        &current_status
-    };
+    // // Initialise the UserData struct that is passed to the repeating timer and stores the
+    // // waveform and the current status
+    // UserData user_data = {
+    //     &waveform,
+    //     &current_status
+    // };
 
     // Initialise the repeating timer and set going
     repeating_timer_t rt;
-    add_repeating_timer_us(iSamplePeriod_us, produce_next_sample, &user_data, &rt);
+    add_repeating_timer_us(iSamplePeriod_us, produce_next_sample, nullptr, &rt);
     while(1){};
 }
