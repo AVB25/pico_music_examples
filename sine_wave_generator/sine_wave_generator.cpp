@@ -12,6 +12,9 @@
 # define BIT_DEPTH 256
 # define F_NOTE 440
 # define F_SAMPLE 44000
+
+// Negative so that repeating alarms are timed by the triggering of the previous alarm, not the end
+// of the callback function
 int64_t iPeriod_us = - round(1e6 / F_SAMPLE);
 
 const int n_samples = F_SAMPLE / F_NOTE;
@@ -19,7 +22,7 @@ const int n_samples = F_SAMPLE / F_NOTE;
 using namespace std;
 
 uint16_t iWavetable[n_samples]; // Wavetable array that stores the samples in a single sine wave period.
-uint16_t iCurrentSampleIdx = 0; // Index of the wavetable containing value to be outpu
+uint16_t iCurrentSampleIdx = 0; // Index of the wavetable containing value to be output
 
 // Define UserData struct that contains the pointer to the wavetable
 // array and the pointer to the current sample in the array.
