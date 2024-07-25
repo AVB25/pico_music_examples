@@ -43,21 +43,7 @@ int main(){
     uint32_t t_start = time_us_32();
     while(i<1000000){
         i++;
-        // UserData* u_data = (UserData*) (&dummy_struct)->user_data;
-        if(idx_update_pwm < max_pwm_idx){
-            idx_update_pwm++;
-        }
-        else{
-            uint16_t adc_freq_reading = adc_read();
-            next_step_increase = get_next_step_increase(adc_freq_reading);
-            idx_update_pwm = 0;
-        }
-        update_state_params(
-            next_step_increase,
-            &current_status,
-            &waveform
-        );
-        pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
+        produce_next_sample();
     };
     t_end = time_us_32();
     uint32_t t_diff = t_end - t_start;

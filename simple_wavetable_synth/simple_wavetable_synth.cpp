@@ -24,15 +24,8 @@ int main(){
         waveform.samples[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * M_PI * i / N_SAMPLES_STORED));
     }
 
-    // // Initialise the UserData struct that is passed to the repeating timer and stores the
-    // // waveform and the current status
-    // UserData user_data = {
-    //     &waveform,
-    //     &current_status
-    // };
-
     // Initialise the repeating timer and set going
     repeating_timer_t rt;
-    add_repeating_timer_us(iSamplePeriod_us, produce_next_sample, nullptr, &rt);
+    add_repeating_timer_us(-iSamplePeriod_us, callback_produce_next_sample, nullptr, &rt);
     while(1){};
 }

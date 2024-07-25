@@ -264,7 +264,7 @@ uint32_t next_step_increase = 0;
  * \param rt Repeating user timer that contains the pointer to the state parameters (stored in 
  * the user_data).
  */
-bool produce_next_sample(repeating_timer_t* rt){
+void produce_next_sample(){
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
     }
@@ -279,6 +279,10 @@ bool produce_next_sample(repeating_timer_t* rt){
         &waveform
     );
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
+}
+
+bool callback_produce_next_sample(repeating_timer_t* rt){
+    produce_next_sample();
     return true;
 }
 
