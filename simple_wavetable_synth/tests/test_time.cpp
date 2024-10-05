@@ -18,8 +18,12 @@ int main(){
     CurrentStatus current_status = {
         0,  // current_step
         0,  // current_output_sample
-        1.0   // volume
+        65535   // volume
     };
+
+    if(!ensure_valid_current_status(&current_status)){
+        return 1;
+    }
     
     // Initialise the object that stores the sinusoidal waveform
     Waveform waveform = {};
@@ -49,7 +53,10 @@ int main(){
     uint32_t t_diff = t_end - t_start;
 
     printf("Start time: %d us\n", t_start);
+    sleep_ms(10);
     printf("End time: %d us\n", t_end);
+    sleep_ms(10);
     printf("Time to execute 1_000_000 samples: %d us.\n", t_diff);
+    sleep_ms(10);
     printf("Time to execute 1 sample: %f us\n", ((float) t_diff) / 1e6);
 }
