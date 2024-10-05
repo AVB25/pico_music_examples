@@ -15,8 +15,12 @@ int main(){
     current_status = {
         0,  // current_step
         0,  // current_output_sample
-        1   // volume
+        1<<16 - 1   // volume, max is 65535 (2^16 - 1)
     };
+
+    if(!ensure_valid_current_status(&current_status)){
+        return 1;
+    }
     
     // Initialise the object that stores the sinusoidal waveform
     waveform = {};

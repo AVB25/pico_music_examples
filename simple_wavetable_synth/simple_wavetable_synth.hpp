@@ -50,15 +50,23 @@ Waveform waveform;
  * lowest end in the interpolation with the next entry in the waveform. LSB 8 bits are the "fine"
  * sample, which is the amount of interpolation between them. 
  * \param current_output_sample Sample to output
- * \param volume The volume of the synth. Float between 0 and 1.
+ * \param volume The volume of the synth. Stored as a 16 bit number, so max volume is 65535.
  */
 typedef struct {
     int32_t current_step;
     int32_t current_output_sample;
-    float volume;
+    int32_t volume;
 } CurrentStatus;
 CurrentStatus current_status;
 
+bool ensure_valid_current_status(CurrentStatus* status){
+    if (status->volume < 1<<16){
+        return true;
+    }
+    else{
+        return false;
+    };
+};
 
 /**
  * The sample rate and sample depth define the maximum frequency resolution as
@@ -247,7 +255,8 @@ void update_state_params(
         );
 
         status->current_step = next_step; // Update waveform current step 
-        status->current_output_sample = (status->volume * _current_output_sample) + PWM_HALF_BIT_DEPTH;
+        // Need to mask to 8 bits to prevent stray bit flips in upper 4 bits that cause horrendous noise otherwise.
+        status->current_output_sample = (((status->volume * _current_output_sample) >> 16) + PWM_HALF_BIT_DEPTH) & 0xff;
 }
 
 
@@ -264,7 +273,8 @@ uint32_t next_step_increase = 0;
  * \param rt Repeating user timer that contains the pointer to the state parameters (stored in 
  * the user_data).
  */
-void produce_next_sample(){
+inline void produce_next_sample(){
+    pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
     }
@@ -278,7 +288,6 @@ void produce_next_sample(){
         &current_status,
         &waveform
     );
-    pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
 }
 
 bool callback_produce_next_sample(repeating_timer_t* rt){
