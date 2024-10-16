@@ -25,7 +25,7 @@ uint current_adc_sample = 0;
  * and the next sample.
  */
 # define N_SAMPLES_TOT 65536    // 2^16
-# define N_SAMPLES_STORED 256   // 2^8
+# define N_SAMPLES_WAVEFORM 256   // 2^8
 # define N_SAMPLES_INTERP 256   // 2^8
 
 
@@ -37,7 +37,7 @@ uint current_adc_sample = 0;
  * the last 8 bits are non-zero  (set by PWM_BIT_DEPTH).
 */
 typedef struct {
-    int32_t samples[N_SAMPLES_STORED];
+    int32_t samples[N_SAMPLES_WAVEFORM];
 } Waveform;
 Waveform waveform;
 
@@ -201,18 +201,19 @@ inline int32_t _interpolate_signed(
  * \brief Return the number of steps by which to advance the waveform for outputting
  * the next sample. 
  * 
- * \param adc_freq_reading 12 bit ADC reading, which linearly sets the frequency.
+ * \param freq_word 12 bit frequency word, which linearly sets the frequency between F_MIN 
+ *      and F_MAX.
  * \return 32 bit int containing the 16 bit step size for the next output as its last 16 
  *      bits 
  */
 uint32_t get_next_step_increase(
-    uint16_t adc_freq_reading
+    uint16_t freq_word
     ){
         // Get intermediate 8-bit interpolation
         uint32_t intResult = _interpolate_unsigned(
             iMinNSteps,
             iMaxNSteps,
-            (uint32_t) adc_freq_reading >> 4
+            (uint32_t) freq_word >> 4
         );
 
 
@@ -220,7 +221,7 @@ uint32_t get_next_step_increase(
         uint32_t next_step_size = _interpolate_unsigned(
             intResult,
             intResult + iNSteps8Bit,
-            (uint32_t) (adc_freq_reading & 0xf) << 4 // Take remaining 4 bits and make 8 bit long
+            (uint32_t) (freq_word & 0xf) << 4 // Take remaining 4 bits and make 8 bit long
             );
         return next_step_size & 0xffff;    // Cast to 16 bits, since that's the full, maximum bit depth
 }
@@ -245,7 +246,7 @@ void update_state_params(
     ){
         int32_t next_step = (status->current_step + step_increase) % N_SAMPLES_TOT;
         int32_t* waveform_sample_low = waveform->samples + (next_step >> 8);    // Index of the waveform to take as the low interpolation extreme
-        int32_t* waveform_sample_high = waveform->samples + ((next_step >> 8) + 1) % N_SAMPLES_STORED;    // Index of the waveform to take as the high interpolation extreme
+        int32_t* waveform_sample_high = waveform->samples + ((next_step >> 8) + 1) % N_SAMPLES_WAVEFORM;    // Index of the waveform to take as the high interpolation extreme
         int32_t interpolation_word = next_step & 0xff;  // Amount of interpolation
 
         int32_t _current_output_sample = _interpolate_signed(
@@ -269,9 +270,6 @@ uint32_t next_step_increase = 0;
 /**
  * \brief Function that calculates and produces the next sample. Is implemented as the callback of
  * a repeating alarm.
- * 
- * \param rt Repeating user timer that contains the pointer to the state parameters (stored in 
- * the user_data).
  */
 inline void produce_next_sample(){
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
