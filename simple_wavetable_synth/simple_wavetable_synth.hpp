@@ -27,6 +27,8 @@ uint current_adc_sample = 0;
 # define N_SAMPLES_TOT 65536    // 2^16
 # define N_SAMPLES_WAVEFORM 256   // 2^8
 # define N_SAMPLES_INTERP 256   // 2^8
+# define N_BITS_WAVEFORM 8  // Number of bits in the waveform samples
+# define N_BITS_INTERP 8    // Number of effective bits of interpolation between waveform samples
 
 
 /**
@@ -37,7 +39,7 @@ uint current_adc_sample = 0;
  * the last 8 bits are non-zero  (set by PWM_BIT_DEPTH).
 */
 typedef struct {
-    int32_t samples[N_SAMPLES_WAVEFORM];
+    int8_t samples[N_SAMPLES_WAVEFORM];
 } Waveform;
 Waveform waveform;
 
@@ -94,7 +96,7 @@ const uint32_t iMaxNSteps =  (F_MAX * N_SAMPLES_TOT) / F_SAMPLE;
  * extreme of an interpolation
  */
 
-const uint32_t iNSteps8Bit = (iMaxNSteps - iMinNSteps) / 256;
+const uint32_t iNSteps8Bit = (iMaxNSteps - iMinNSteps) / N_SAMPLES_WAVEFORM;
 
 
 // Use PWM slice 0, channel A, which is GPIO pin 0 (pin 1 on the board :P)
@@ -159,8 +161,8 @@ void update_state_params(
     Waveform* waveform
     ){
         int32_t next_step = (status->current_step + step_increase) % N_SAMPLES_TOT;
-        int32_t* waveform_sample_low = waveform->samples + (next_step >> 8);    // Index of the waveform to take as the low interpolation extreme
-        int32_t* waveform_sample_high = waveform->samples + ((next_step >> 8) + 1) % N_SAMPLES_WAVEFORM;    // Index of the waveform to take as the high interpolation extreme
+        int8_t* waveform_sample_low = waveform->samples + (next_step >> 8);    // Index of the waveform to take as the low interpolation extreme
+        int8_t* waveform_sample_high = waveform->samples + ((next_step >> 8) + 1) % N_SAMPLES_WAVEFORM;    // Index of the waveform to take as the high interpolation extreme
         int32_t interpolation_word = next_step & 0xff;  // Amount of interpolation
 
         int32_t _current_output_sample = _interpolate_signed(
@@ -228,7 +230,7 @@ inline void produce_next_sample_fixed_volume(){
 }
 
 bool callback_produce_next_sample(repeating_timer_t* rt){
-    produce_next_sample_fixed_frequency();
+    produce_next_sample_fixed_volume();
     return true;
 }
 
