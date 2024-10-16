@@ -1,10 +1,10 @@
 # include <stdio.h>
 # include <math.h>
 # include "pico/stdio.h"
-# include "hardware/adc.h"
 # include "pico/stdlib.h"
-# include "hardware/interp.h"
-# include "hardware/pwm.h"
+# include "pico_hardware/adc.hpp"
+# include "pico_hardware/interpolator.hpp"
+# include "pico_hardware/pwm.hpp"
 
 
 // Sample rate
@@ -105,97 +105,10 @@ const uint32_t iNSteps8Bit = (iMaxNSteps - iMinNSteps) / 256;
 # define PWM_HALF_BIT_DEPTH 128
 
 
-/**
- * \brief Initialise PWM.
- * 
- * \param pwm_slice The PWM slice to initialise
- * \param pwm_gpio  The GPIO pin used for the PWM
- * \param bit_depth The desired PWM bit depth (sets the PWM wrap value)
- */
-void init_pwm(uint pwm_slice, uint pwm_gpio, uint bit_depth){
-    gpio_set_function(pwm_gpio, GPIO_FUNC_PWM);
-    pwm_set_wrap(pwm_slice, bit_depth - 1);
-    pwm_set_enabled(pwm_slice, true);
-}
-
-
 // Use the ADC on GPIO 26
 # define PIN_ADC 26
 // Use ADC input 0
 # define ADC_INPUT 0
-
-
-/**
- * \brief Initialise the ADC
- * 
- * \param pin_adc Pin on which to sample the ADC.
- * \param adc_intpu ADC input to select
- */
-void init_adc(uint pin_adc, uint adc_input){
-    adc_init();
-    adc_gpio_init(pin_adc);
-    adc_select_input(adc_input);
-}
-
-/**
- * Initialise interpolator interp0 to blend mode.
- */
-void initialise_interpolator(){
-    // Initialise dynamic interpolator
-    interp_config cfg = interp_default_config();
-    // Lane 0
-    interp_config_set_blend(&cfg, true);
-    interp_set_config(interp0, 0, &cfg);
-    // Lane 1
-    interp_config dflt_cfg = interp_default_config();
-    interp_set_config(interp0, 1, &dflt_cfg);
-}
-
-
-/**
- * Use the hardware interpolator to interpolate between two positive values.
- * 
- * \param low_level Low end of interpolation
- * \param high_level High end of interpolation
- * \param interp_fraction Interpolation fraction. Only last 8 bits are used.
- */
-inline uint32_t _interpolate_unsigned(
-    uint32_t low_level,
-    uint32_t high_level,
-    uint32_t interp_fraction
-    ){
-        // Set interpolator to unsigned
-        hw_write_masked(&(interp0->ctrl[1]), 0 << 15, 1 << 15);
-        interp0->base[0] = low_level;
-        interp0->base[1] = high_level;
-        // Keep last 4 bits and shift left to make them 8-bit MSBs
-        interp0->accum[1] = interp_fraction;
-
-        return interp0->peek[1];
-}
-
-
-/**
- * Use the hardware interpolator to interpolate between two signed values.
- * 
- * \param low_level Low end of interpolation
- * \param high_level High end of interpolation
- * \param interp_fraction Interpolation fraction. Only last 8 bits are used.
- */
-inline int32_t _interpolate_signed(
-    int32_t low_level,
-    int32_t high_level,
-    int32_t interp_fraction
-    ){
-        // Set interpolator to signed
-        hw_write_masked(&(interp0->ctrl[1]), 1 << 15, 1 << 15);
-        interp0->base[0] = low_level;
-        interp0->base[1] = high_level;
-        // Keep last 4 bits and shift left to make them 8-bit MSBs
-        interp0->accum[1] = interp_fraction;
-
-        return interp0->peek[1];
-}
 
 
 /**

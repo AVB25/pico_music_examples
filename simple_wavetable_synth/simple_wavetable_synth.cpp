@@ -9,7 +9,7 @@ int main(){
     // Initialise the PWM, ADC and interpolators
     init_pwm(PWM_SLICE, PWM_GPIO, PWM_BIT_DEPTH);
     init_adc(PIN_ADC, ADC_INPUT);
-    initialise_interpolator();
+    initialise_blend_interpolator();
 
     // Initialise the struct that stores the current status of the synth
     current_status = {
