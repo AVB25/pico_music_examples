@@ -176,23 +176,48 @@ void update_state_params(
 
 
 // Store the next ADC reading
-uint16_t adc_freq_reading;
+uint16_t raw_adc_reading;
 // Store the next step increase
 uint32_t next_step_increase = 0;
-
+// Fixed frequency word for testing, 
+uint16_t fixed_frequency_word = 1 << 9;
 
 /**
- * \brief Function that calculates and produces the next sample. Is implemented as the callback of
- * a repeating alarm.
+ * \brief Function that calculates and produces the next sample for a fixed frequency.
+ * Is implemented as the callback of a repeating alarm.
  */
-inline void produce_next_sample(){
+inline void produce_next_sample_fixed_frequency(){
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
     }
     else{
-        adc_freq_reading = adc_read();
-        next_step_increase = get_next_step_increase(adc_freq_reading);
+        raw_adc_reading = adc_read();
+        next_step_increase = get_next_step_increase(fixed_frequency_word);
+        current_status.volume = raw_adc_reading << 4;
+        current_adc_sample = 0;
+    }
+    update_state_params(
+        next_step_increase,
+        &current_status,
+        &waveform
+    );
+}
+
+
+/**
+ * \brief Function that calculates and produces the next sample for a fixed volume.
+ * Is implemented as the callback of a repeating alarm.
+ */
+inline void produce_next_sample_fixed_volume(){
+    pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
+    if(current_adc_sample < ADC_SAMPLE_PERIOD){
+        current_adc_sample++;
+    }
+    else{
+        raw_adc_reading = adc_read();
+        next_step_increase = get_next_step_increase(raw_adc_reading);
+        current_status.volume = raw_adc_reading << 4;
         current_adc_sample = 0;
     }
     update_state_params(
@@ -203,7 +228,7 @@ inline void produce_next_sample(){
 }
 
 bool callback_produce_next_sample(repeating_timer_t* rt){
-    produce_next_sample();
+    produce_next_sample_fixed_frequency();
     return true;
 }
 
