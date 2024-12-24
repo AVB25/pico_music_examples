@@ -30,18 +30,75 @@ uint current_adc_sample = 0;
 # define N_BITS_WAVEFORM 8  // Number of bits in the waveform samples
 # define N_BITS_INTERP 8    // Number of effective bits of interpolation between waveform samples
 
+/** Contains the data for a single waveform. The length can be passed at runtime
+ * and the data can (probably) be changed at runtime too. Can access he ```i```th
+ * sample by just calling ```wav[i]``` where ```wav``` is a ```Waveform<T>``` instance.
+ */
+template <typename T>
+class Waveform{
+private:
+    int length;
+    T* ptr;
+public:
 
-/**
- * \brief Waveform struct that contains the samples of the waveform and the current step to output. 
- * 
- * \param samples Array storing the samples. They are stored as 32 bit ints, since the base[]
- * values for the interpolators (between which the interpolation happens) are 32 bits. Only 
- * the last 8 bits are non-zero  (set by PWM_BIT_DEPTH).
-*/
-typedef struct {
-    int8_t samples[N_SAMPLES_WAVEFORM];
-} Waveform;
-Waveform waveform;
+    Waveform();
+    Waveform(int _length);
+    Waveform(int _length, T arr[]);
+    ~Waveform();
+
+    T& operator[](int32_t idx);
+
+    int get_length();
+    void set_length(int l);
+};
+
+template <typename T>
+Waveform<T>::Waveform(){}
+
+template <typename T>
+Waveform<T>::Waveform(int _length){
+    length = _length;
+    ptr = new T[length];
+    for (int i = 0; i<length; i++){
+        ptr[i] = (T) 0;
+    }
+}
+
+template <typename T>
+Waveform<T>::Waveform(int _length, T arr[]){
+    length = _length;
+    ptr = new T[length];
+    for (int i = 0; i<length; i++){
+        ptr[i] = arr[i];
+    }
+}
+
+template <typename T>
+Waveform<T>::~Waveform(){
+    delete[] ptr;
+}
+
+template <typename T>
+T& Waveform<T>::operator[](int32_t idx){
+    return ptr[idx % length];
+}
+
+template <typename T>
+int Waveform<T>::get_length(){
+    return length;
+}
+
+template <typename T>
+void Waveform<T>::set_length(int l){
+    length = l;
+    ptr = new T[length];
+    for (int i = 0; i<length; i++){
+        ptr[i] = (T) 0;
+    }
+}
+
+/** 8-bit waveform. */
+typedef Waveform<int8_t> Waveform8;
 
 
 /**
@@ -158,16 +215,17 @@ uint32_t get_next_step_increase(
 void update_state_params(
     uint32_t step_increase,
     CurrentStatus* status,
-    Waveform* waveform
+    Waveform<int8_t>* waveform
     ){
         int32_t next_step = (status->current_step + step_increase) % N_SAMPLES_TOT;
-        int8_t* waveform_sample_low = waveform->samples + (next_step >> 8);    // Index of the waveform to take as the low interpolation extreme
-        int8_t* waveform_sample_high = waveform->samples + ((next_step >> 8) + 1) % N_SAMPLES_WAVEFORM;    // Index of the waveform to take as the high interpolation extreme
+        int32_t coarse_step = next_step >> 8;
+        int8_t waveform_sample_low = (*waveform)[coarse_step];    // Index of the waveform to take as the low interpolation extreme
+        int8_t waveform_sample_high = (*waveform)[coarse_step + 1];    // Index of the waveform to take as the high interpolation extreme
         int32_t interpolation_word = next_step & 0xff;  // Amount of interpolation
 
         int32_t _current_output_sample = _interpolate_signed(
-            *waveform_sample_low,
-            *waveform_sample_high,
+            waveform_sample_low,
+            waveform_sample_high,
             interpolation_word
         );
 
@@ -188,7 +246,7 @@ uint16_t fixed_frequency_word = 1 << 9;
  * \brief Function that calculates and produces the next sample for a fixed frequency.
  * Is implemented as the callback of a repeating alarm.
  */
-inline void produce_next_sample_fixed_frequency(){
+inline void produce_next_sample_fixed_frequency(Waveform8* waveform){
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
@@ -202,7 +260,7 @@ inline void produce_next_sample_fixed_frequency(){
     update_state_params(
         next_step_increase,
         &current_status,
-        &waveform
+        waveform
     );
 }
 
@@ -211,7 +269,7 @@ inline void produce_next_sample_fixed_frequency(){
  * \brief Function that calculates and produces the next sample for a fixed volume.
  * Is implemented as the callback of a repeating alarm.
  */
-inline void produce_next_sample_fixed_volume(){
+inline void produce_next_sample_fixed_volume(Waveform8* waveform){
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
@@ -225,12 +283,20 @@ inline void produce_next_sample_fixed_volume(){
     update_state_params(
         next_step_increase,
         &current_status,
-        &waveform
+        waveform
     );
 }
 
+/**
+ * \brief Function that is called by the repeating timer and calls the calculation
+ * of the next sample. Is passed the pointer to the waveform as the ```user_data```
+ * member of the ```repeating_timer_t``` it receives.
+ * 
+ * \param rt ```repeating_timer_t``` struct. It contains a pointer to the waveform
+ *      as its ```user_data``` member.
+ */
 bool callback_produce_next_sample(repeating_timer_t* rt){
-    produce_next_sample_fixed_volume();
+    produce_next_sample_fixed_frequency((Waveform8*) rt->user_data);
     return true;
 }
 

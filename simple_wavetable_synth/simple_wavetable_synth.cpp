@@ -21,15 +21,15 @@ int main(){
     if(!ensure_valid_current_status(&current_status)){
         return 1;
     }
-    
+
     // Initialise the object that stores the sinusoidal waveform
-    waveform = {};
+    Waveform8 waveform = Waveform8(N_SAMPLES_WAVEFORM);
     for (int i = 0; i < N_SAMPLES_WAVEFORM; i++){
-        waveform.samples[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * M_PI * i / N_SAMPLES_WAVEFORM));
+        waveform[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * M_PI * i / N_SAMPLES_WAVEFORM));
     }
 
     // Initialise the repeating timer and set going
     repeating_timer_t rt;
-    add_repeating_timer_us(-iSamplePeriod_us, callback_produce_next_sample, nullptr, &rt);
+    add_repeating_timer_us(-iSamplePeriod_us, callback_produce_next_sample, &waveform, &rt);
     while(1){};
 }

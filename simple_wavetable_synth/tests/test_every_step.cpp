@@ -7,24 +7,24 @@ int main(){
     sleep_ms(1);
 
     // Initialise the PWM, ADC and interpolators
-    init_pwm(PWM_SLICE, PWM_BIT_DEPTH);
+    init_pwm(PWM_SLICE, PWM_GPIO, PWM_BIT_DEPTH);
     init_adc(PIN_ADC, ADC_INPUT);
-    initialise_interpolator();
+    initialise_blend_interpolator();
 
     // Initialise the struct that stores the current status of the synth
     CurrentStatus current_status = {
         0,  // current_step
         0,  // current_output_sample
-        // 65535   // volume
-        // (1 << 15)   // volume
-        12861   // volume
+        65535   // volume
     };
-    
+
     // Initialise the object that stores the sinusoidal waveform
-    Waveform waveform = {};
-    for (int i = 0; i < N_SAMPLES_STORED; i++){
-        waveform.samples[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * (M_PI / N_SAMPLES_STORED) * i));
-    }
+    int n_samples = N_SAMPLES_WAVEFORM;
+    Waveform8 wave = Waveform8(n_samples);
+    for (int i = 0; i < n_samples; i++){
+        wave[i] = round((PWM_HALF_BIT_DEPTH - 1) * (sin(2 * M_PI * i / n_samples)));
+    }    
+    int i = 0;
 
     int cInput;
     while(1){
@@ -45,7 +45,7 @@ int main(){
             update_state_params(
                 next_step_increase,
                 &current_status,
-                &waveform
+                &wave
             );
             printf("next sample: %i\n", current_status.current_output_sample);
             // sleep_ms(500);
