@@ -2,9 +2,15 @@
 # include <math.h>
 # include "pico/stdio.h"
 # include "pico/stdlib.h"
-# include "pico_hardware/adc.hpp"
-# include "pico_hardware/interpolator.hpp"
-# include "pico_hardware/pwm.hpp"
+# include "adc.hpp"
+# include "interpolator.hpp"
+# include "pwm.hpp"
+#ifndef _HARDWARE_PWM_H
+    # include "hardware/pwm.h"
+#endif
+#ifndef _HARDWARE_ADC_H
+    #include "hardware/adc.h"
+#endif
 
 
 // Sample rate
