@@ -1,5 +1,6 @@
 # include <stdio.h>
 # include <math.h>
+# include <vector>
 # include "pico/stdio.h"
 # include "pico/stdlib.h"
 # include "adc.hpp"
@@ -37,17 +38,17 @@ uint current_adc_sample = 0;
 # define N_BITS_INTERP 8    // Number of effective bits of interpolation between waveform samples
 
 /** Contains the data for a single waveform. The length can be passed at runtime
- * and the data can (probably) be changed at runtime too. Can access he ```i```th
- * sample by just calling ```wav[i]``` where ```wav``` is a ```Waveform<T>``` instance.
+ and the data can (probably) be changed at runtime too. Can access he ```i```th
+ sample by just calling ```wav[i]``` where ```wav``` is a ```Waveform<T>``` instance.
  */
 template <typename T>
 class Waveform{
 private:
     int length;
-    T* ptr;
+    std::vector<T> vect;
+    bool check_bounds = true;
 public:
 
-    Waveform();
     Waveform(int _length);
     Waveform(int _length, T arr[]);
     ~Waveform();
@@ -55,52 +56,42 @@ public:
     T& operator[](int32_t idx);
 
     int get_length();
-    void set_length(int l);
 };
-
-template <typename T>
-Waveform<T>::Waveform(){}
 
 template <typename T>
 Waveform<T>::Waveform(int _length){
     length = _length;
-    ptr = new T[length];
-    for (int i = 0; i<length; i++){
-        ptr[i] = (T) 0;
-    }
+    vect = std::vector<T> ( _length);
 }
 
 template <typename T>
 Waveform<T>::Waveform(int _length, T arr[]){
     length = _length;
-    ptr = new T[length];
+    vect = std::vector<T> ( _length);
     for (int i = 0; i<length; i++){
-        ptr[i] = arr[i];
+        vect[i] = arr[i];
     }
 }
 
 template <typename T>
-Waveform<T>::~Waveform(){
-    delete[] ptr;
-}
+Waveform<T>::~Waveform(){}
 
+/** By default, check that idx doesn't excede the size of the array.
+ This check can be removed by setting attribute ```check_bounds``` to
+ ```false```
+ */
 template <typename T>
 T& Waveform<T>::operator[](int32_t idx){
-    return ptr[idx % length];
+    if (check_bounds) {
+        return vect[idx % length];
+    } else {
+        return vect[idx];
+    }
 }
 
 template <typename T>
 int Waveform<T>::get_length(){
     return length;
-}
-
-template <typename T>
-void Waveform<T>::set_length(int l){
-    length = l;
-    ptr = new T[length];
-    for (int i = 0; i<length; i++){
-        ptr[i] = (T) 0;
-    }
 }
 
 /** 8-bit waveform. */
