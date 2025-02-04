@@ -23,7 +23,7 @@ int main(){
     }
 
     // Initialise the object that stores the sinusoidal waveform
-    Waveform8 waveform = Waveform8(N_SAMPLES_WAVEFORM);
+    pmuse::Waveform_i8 waveform = pmuse::Waveform_i8(N_SAMPLES_WAVEFORM);
     for (int i = 0; i < N_SAMPLES_WAVEFORM; i++){
         waveform[i] = round((PWM_HALF_BIT_DEPTH - 1) * sin(2 * M_PI * i / N_SAMPLES_WAVEFORM));
     }

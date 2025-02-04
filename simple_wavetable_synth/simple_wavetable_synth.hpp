@@ -12,6 +12,9 @@
 #ifndef _HARDWARE_ADC_H
     #include "hardware/adc.h"
 #endif
+#ifndef _WAVEFORM_H
+    #include "pmuse/waveform.hpp"
+#endif
 
 
 // Sample rate
@@ -37,66 +40,62 @@ uint current_adc_sample = 0;
 # define N_BITS_WAVEFORM 8  // Number of bits in the waveform samples
 # define N_BITS_INTERP 8    // Number of effective bits of interpolation between waveform samples
 
-/** Contains the data for a single waveform. The length can be passed at runtime
- and the data can (probably) be changed at runtime too. Can access he ```i```th
- sample by just calling ```wav[i]``` where ```wav``` is a ```Waveform<T>``` instance.
- */
-template <typename T>
-class Waveform{
-private:
-    int length;
-    std::vector<T> vect;
-    bool check_bounds = true;
-public:
+// /** Contains the data for a single waveform. The length can be passed at runtime
+//  and the data can (probably) be changed at runtime too. Can access he ```i```th
+//  sample by just calling ```wav[i]``` where ```wav``` is a ```Waveform<T>``` instance.
+//  */
+// template <typename T>
+// class Waveform{
+// private:
+//     int length;
+//     std::vector<T> vect;
+//     bool check_bounds = true;
+// public:
 
-    Waveform(int _length);
-    Waveform(int _length, T arr[]);
-    ~Waveform();
+//     Waveform(int _length);
+//     Waveform(int _length, T arr[]);
+//     ~Waveform();
 
-    T& operator[](int32_t idx);
+//     T& operator[](int32_t idx);
 
-    int get_length();
-};
+//     int get_length();
+// };
 
-template <typename T>
-Waveform<T>::Waveform(int _length){
-    length = _length;
-    vect = std::vector<T> ( _length);
-}
+// template <typename T>
+// Waveform<T>::Waveform(int _length){
+//     length = _length;
+//     vect = std::vector<T> ( _length);
+// }
 
-template <typename T>
-Waveform<T>::Waveform(int _length, T arr[]){
-    length = _length;
-    vect = std::vector<T> ( _length);
-    for (int i = 0; i<length; i++){
-        vect[i] = arr[i];
-    }
-}
+// template <typename T>
+// Waveform<T>::Waveform(int _length, T arr[]){
+//     length = _length;
+//     vect = std::vector<T> ( _length);
+//     for (int i = 0; i<length; i++){
+//         vect[i] = arr[i];
+//     }
+// }
 
-template <typename T>
-Waveform<T>::~Waveform(){}
+// template <typename T>
+// Waveform<T>::~Waveform(){}
 
-/** By default, check that idx doesn't excede the size of the array.
- This check can be removed by setting attribute ```check_bounds``` to
- ```false```
- */
-template <typename T>
-T& Waveform<T>::operator[](int32_t idx){
-    if (check_bounds) {
-        return vect[idx % length];
-    } else {
-        return vect[idx];
-    }
-}
+// /** By default, check that idx doesn't excede the size of the array.
+//  This check can be removed by setting attribute ```check_bounds``` to
+//  ```false```
+//  */
+// template <typename T>
+// T& Waveform<T>::operator[](int32_t idx){
+//     if (check_bounds) {
+//         return vect[idx % length];
+//     } else {
+//         return vect[idx];
+//     }
+// }
 
-template <typename T>
-int Waveform<T>::get_length(){
-    return length;
-}
-
-/** 8-bit waveform. */
-typedef Waveform<int8_t> Waveform8;
-
+// template <typename T>
+// int Waveform<T>::get_length(){
+//     return length;
+// }
 
 /**
  * \brief Struct that contains the current state of the synthesiser. 
@@ -212,7 +211,7 @@ uint32_t get_next_step_increase(
 void update_state_params(
     uint32_t step_increase,
     CurrentStatus* status,
-    Waveform<int8_t>* waveform
+    pmuse::Waveform_i8* waveform
     ){
         int32_t next_step = (status->current_step + step_increase) % N_SAMPLES_TOT;
         int32_t coarse_step = next_step >> 8;
@@ -243,7 +242,7 @@ uint16_t fixed_frequency_word = 1 << 9;
  * \brief Function that calculates and produces the next sample for a fixed frequency.
  * Is implemented as the callback of a repeating alarm.
  */
-inline void produce_next_sample_fixed_frequency(Waveform8* waveform){
+inline void produce_next_sample_fixed_frequency(pmuse::Waveform_i8* waveform){
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
@@ -266,7 +265,7 @@ inline void produce_next_sample_fixed_frequency(Waveform8* waveform){
  * \brief Function that calculates and produces the next sample for a fixed volume.
  * Is implemented as the callback of a repeating alarm.
  */
-inline void produce_next_sample_fixed_volume(Waveform8* waveform){
+inline void produce_next_sample_fixed_volume(pmuse::Waveform_i8* waveform){
     pwm_set_chan_level(PWM_SLICE, PWM_CHAN, current_status.current_output_sample);
     if(current_adc_sample < ADC_SAMPLE_PERIOD){
         current_adc_sample++;
@@ -293,7 +292,7 @@ inline void produce_next_sample_fixed_volume(Waveform8* waveform){
  *      as its ```user_data``` member.
  */
 bool callback_produce_next_sample(repeating_timer_t* rt){
-    produce_next_sample_fixed_frequency((Waveform8*) rt->user_data);
+    produce_next_sample_fixed_frequency((pmuse::Waveform_i8*) rt->user_data);
     return true;
 }
 

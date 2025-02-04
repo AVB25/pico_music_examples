@@ -11,6 +11,7 @@ project(simple_wavetable_synth)
 pico_sdk_init()
 
 add_subdirectory(pico_hardware_utils)
+add_subdirectory(pmuse)
 
 add_executable(simple_wavetable_synth
     simple_wavetable_synth.cpp
@@ -20,8 +21,12 @@ target_link_libraries(simple_wavetable_synth
     pico_stdlib
     pico_time
     pico_hardware_utils
+    pmuse
 )
-target_include_directories(simple_wavetable_synth PUBLIC "${CMAKE_SOURCE_DIR}/pico_hardware_utils")
+target_include_directories(simple_wavetable_synth 
+    PUBLIC "${CMAKE_SOURCE_DIR}/pico_hardware_utils"
+    PUBLIC "${CMAKE_SOURCE_DIR}/pmuse"
+    )
 
 pico_enable_stdio_usb(simple_wavetable_synth 1)
 pico_enable_stdio_uart(simple_wavetable_synth 0)
